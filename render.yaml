@@ -1,0 +1,37 @@
+# Render Blueprint — https://render.com/docs/blueprint-spec
+# Deploy: Dashboard → New → Blueprint → connect Alash-electronics/auen-backend
+services:
+  - type: web
+    name: auen-backend
+    runtime: node
+    plan: free
+    region: frankfurt
+    branch: main
+    autoDeploy: true
+    buildCommand: npm install && npm run build
+    startCommand: npm start
+    healthCheckPath: /health
+    envVars:
+      - key: NODE_VERSION
+        value: "22.14.0"
+      - key: NODE_ENV
+        value: production
+      - key: JWT_SECRET
+        generateValue: true
+      - key: CORS_ORIGIN
+        value: "*"
+      - key: DATABASE_PATH
+        value: ./data/auen.db
+      # Optional — fill in Dashboard when you wire real music accounts
+      - key: SPOTIFY_CLIENT_ID
+        sync: false
+      - key: SPOTIFY_CLIENT_SECRET
+        sync: false
+      - key: SPOTIFY_REDIRECT_URI
+        value: auen://spotify-callback
+      - key: APPLE_TEAM_ID
+        sync: false
+      - key: APPLE_MUSIC_KEY_ID
+        sync: false
+      - key: APPLE_MUSIC_PRIVATE_KEY
+        sync: false

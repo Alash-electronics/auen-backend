@@ -4,6 +4,7 @@ dist/
 dev.db
 dev.db-shm
 dev.db-wal
+data/
 npm-debug.log*
 .DS_Store
 *.log

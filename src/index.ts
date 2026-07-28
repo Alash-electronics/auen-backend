@@ -37,6 +37,7 @@ const server = http.createServer(app);
 initSocket(server);
 startSpotifyPoller();
 
-server.listen(config.port, () => {
-  console.log(`Äuen API listening on http://localhost:${config.port}`);
+// Bind 0.0.0.0 so Render (and other hosts) can reach the process.
+server.listen(config.port, "0.0.0.0", () => {
+  console.log(`Äuen API listening on http://0.0.0.0:${config.port}`);
 });

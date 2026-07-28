@@ -1,4 +1,5 @@
 import { DatabaseSync } from "node:sqlite";
+import fs from "fs";
 import path from "path";
 
 // SQLite via Node's built-in `node:sqlite` module (stable in Node 22.5+,
@@ -7,7 +8,11 @@ import path from "path";
 // is the only thing you'd need to swap out (e.g. for a `pg` Pool) - every
 // route talks to the small repository functions in `repo.ts`, never to
 // raw SQL directly.
+//
+// On Render free tier the disk is ephemeral (data resets on redeploy).
+// Set DATABASE_PATH (e.g. ./data/auen.db) so the file lives in a writable dir.
 const dbPath = process.env.DATABASE_PATH ?? path.join(__dirname, "..", "dev.db");
+fs.mkdirSync(path.dirname(dbPath), { recursive: true });
 
 export const db = new DatabaseSync(dbPath);
 db.exec("PRAGMA journal_mode = WAL");
