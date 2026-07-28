@@ -1,0 +1,7 @@
+This folder is unused.
+
+The backend originally used Prisma, but switched to a small SQLite
+repository layer (see ../src/db.ts and ../src/repo.ts) so the project has
+zero external binary downloads at install/build time and runs fully
+offline after `npm install`. This file is kept only so nothing 404s if
+something still links here; it can be deleted.
