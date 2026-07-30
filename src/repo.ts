@@ -52,6 +52,9 @@ export const SpotifyAccounts = {
       | undefined;
   },
   upsert(userId: string, accessToken: string, refreshToken: string, expiresAt: Date) {
+    if (!Users.findById(userId)) {
+      throw new Error("Session expired — please log in again");
+    }
     db.prepare(
       `INSERT INTO spotify_accounts (user_id, access_token, refresh_token, expires_at)
        VALUES (?, ?, ?, ?)
