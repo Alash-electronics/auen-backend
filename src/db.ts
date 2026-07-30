@@ -1,4 +1,5 @@
 import { DatabaseSync } from "node:sqlite";
+import fs from "fs";
 import path from "path";
 
 // SQLite via Node's built-in `node:sqlite` module (stable in Node 22.5+,
@@ -8,6 +9,7 @@ import path from "path";
 // route talks to the small repository functions in `repo.ts`, never to
 // raw SQL directly.
 const dbPath = process.env.DATABASE_PATH ?? path.join(__dirname, "..", "dev.db");
+fs.mkdirSync(path.dirname(path.resolve(dbPath)), { recursive: true });
 
 export const db = new DatabaseSync(dbPath);
 db.exec("PRAGMA journal_mode = WAL");
