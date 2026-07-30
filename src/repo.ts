@@ -10,14 +10,15 @@ export interface UserRow {
   password_hash: string;
   display_name: string;
   created_at: string;
+  spotify_id?: string | null;
 }
 
 export const Users = {
-  create(email: string, passwordHash: string, displayName: string): UserRow {
+  create(email: string, passwordHash: string, displayName: string, spotifyId?: string): UserRow {
     const id = randomUUID();
     db.prepare(
-      `INSERT INTO users (id, email, password_hash, display_name) VALUES (?, ?, ?, ?)`
-    ).run(id, email, passwordHash, displayName);
+      `INSERT INTO users (id, email, password_hash, display_name, spotify_id) VALUES (?, ?, ?, ?, ?)`
+    ).run(id, email, passwordHash, displayName, spotifyId ?? null);
     Privacy.ensureDefaults(id);
     return Users.findById(id)!;
   },
@@ -26,6 +27,14 @@ export const Users = {
   },
   findById(id: string): UserRow | undefined {
     return db.prepare(`SELECT * FROM users WHERE id = ?`).get(id) as UserRow | undefined;
+  },
+  findBySpotifyId(spotifyId: string): UserRow | undefined {
+    return db.prepare(`SELECT * FROM users WHERE spotify_id = ?`).get(spotifyId) as
+      | UserRow
+      | undefined;
+  },
+  setSpotifyId(userId: string, spotifyId: string) {
+    db.prepare(`UPDATE users SET spotify_id = ? WHERE id = ?`).run(spotifyId, userId);
   },
 };
 
@@ -127,6 +136,11 @@ export const NowPlaying = {
          is_playing = excluded.is_playing,
          updated_at = excluded.updated_at`
     ).run(userId, service, trackName, artistName, albumArt, isPlaying ? 1 : 0, now);
+  },
+  find(userId: string): NowPlayingRow | undefined {
+    return db.prepare(`SELECT * FROM now_playing WHERE user_id = ?`).get(userId) as
+      | NowPlayingRow
+      | undefined;
   },
   delete(userId: string) {
     db.prepare(`DELETE FROM now_playing WHERE user_id = ?`).run(userId);

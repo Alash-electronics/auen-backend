@@ -16,7 +16,10 @@ export const config = {
   spotify: {
     clientId: process.env.SPOTIFY_CLIENT_ID ?? "",
     clientSecret: process.env.SPOTIFY_CLIENT_SECRET ?? "",
+    /** Web / server redirect (Render). */
     redirectUri: process.env.SPOTIFY_REDIRECT_URI ?? "auen://spotify-callback",
+    /** iOS ASWebAuthenticationSession scheme — add both URIs in Spotify Dashboard. */
+    mobileRedirectUri: process.env.SPOTIFY_MOBILE_REDIRECT_URI ?? "auen://spotify-callback",
   },
 
   appleMusic: {

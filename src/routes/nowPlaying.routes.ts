@@ -14,6 +14,22 @@ const pushSchema = z.object({
   isPlaying: z.boolean().default(true),
 });
 
+/** Current user's now-playing row (after Spotify sync or client push). */
+nowPlayingRouter.get("/me", requireAuth, async (req: AuthedRequest, res) => {
+  const row = NowPlaying.find(req.userId!);
+  if (!row) return res.json({ nowPlaying: null });
+  res.json({
+    nowPlaying: {
+      service: row.service,
+      trackName: row.track_name,
+      artistName: row.artist_name,
+      albumArt: row.album_art,
+      isPlaying: !!row.is_playing,
+      updatedAt: row.updated_at,
+    },
+  });
+});
+
 /**
  * Client-push endpoint - used by Apple Music (no server-side "currently
  * playing" API exists) and as a manual fallback for Spotify.

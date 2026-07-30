@@ -29,6 +29,8 @@ services:
         sync: false
       - key: SPOTIFY_REDIRECT_URI
         value: auen://spotify-callback
+      - key: SPOTIFY_MOBILE_REDIRECT_URI
+        value: auen://spotify-callback
       - key: APPLE_TEAM_ID
         sync: false
       - key: APPLE_MUSIC_KEY_ID

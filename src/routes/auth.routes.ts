@@ -4,6 +4,8 @@ import { z } from "zod";
 import { Users, SpotifyAccounts, AppleMusicAccounts } from "../repo";
 import { signToken } from "../utils/jwt";
 import { requireAuth, AuthedRequest } from "../middleware/auth";
+import { loginWithSpotify, isSpotifyConfigured } from "../services/spotify.service";
+import { config } from "../config";
 
 export const authRouter = Router();
 
@@ -73,4 +75,46 @@ authRouter.get("/me", requireAuth, async (req: AuthedRequest, res) => {
     connectedSpotify: !!SpotifyAccounts.find(user.id),
     connectedAppleMusic: !!AppleMusicAccounts.find(user.id),
   });
+});
+
+const spotifyLoginSchema = z.object({
+  code: z.string().min(1),
+  codeVerifier: z.string().min(1),
+  redirectUri: z.string().min(1).optional(),
+});
+
+/**
+ * Sign in / register with Spotify (PKCE from iOS).
+ * POST /auth/spotify  { code, codeVerifier, redirectUri? }
+ */
+authRouter.post("/spotify", async (req, res) => {
+  if (!isSpotifyConfigured()) {
+    return res.status(503).json({ error: "Spotify is not configured on this server" });
+  }
+
+  const parsed = spotifyLoginSchema.safeParse(req.body);
+  if (!parsed.success) {
+    return res.status(400).json({ error: parsed.error.flatten() });
+  }
+
+  try {
+    const { token, user } = await loginWithSpotify(
+      parsed.data.code,
+      parsed.data.codeVerifier,
+      parsed.data.redirectUri ?? config.spotify.mobileRedirectUri
+    );
+    res.json({
+      token,
+      user: {
+        id: user.id,
+        email: user.email,
+        displayName: user.display_name,
+        connectedSpotify: true,
+        connectedAppleMusic: !!AppleMusicAccounts.find(user.id),
+      },
+    });
+  } catch (err: any) {
+    console.error("Spotify login failed:", err);
+    res.status(502).json({ error: err.message ?? "Spotify login failed" });
+  }
 });
