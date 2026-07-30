@@ -91,15 +91,67 @@ const callbackSchema = z.object({
 
 /**
  * Browser redirect from Spotify Dashboard redirect URI.
- * Example: GET /spotify/callback?code=...&state=userId
  *
- * For confidential clients (client secret set) no PKCE verifier is required.
- * `state` should be the Äuen user id when linking an account.
+ * Two modes:
+ * 1) iOS PKCE (ASWebAuthenticationSession): state empty / `ios` / `mobile`
+ *    → bounce to `auen://spotify-callback?code=…` so the sheet completes.
+ *    Token exchange stays on the device → POST /auth/spotify or POST /spotify/callback.
+ * 2) Web link (legacy): state = Äuen userId → exchange here (client secret, no PKCE).
+ *
+ * Custom schemes (`auen://…`) often fail with "redirect_uri: Not matching configuration"
+ * if not added in the Spotify Dashboard — prefer the HTTPS callback and bounce.
  */
 spotifyRouter.get("/callback", async (req, res) => {
   const code = String(req.query.code ?? "");
-  const state = String(req.query.state ?? ""); // userId
-  const error = req.query.error;
+  const state = String(req.query.state ?? "");
+  const error = typeof req.query.error === "string" ? req.query.error : "";
+  const errorDescription =
+    typeof req.query.error_description === "string" ? req.query.error_description : "";
+
+  // Mobile / iOS: always deep-link back into the app (do not exchange here).
+  const isMobileBounce =
+    !state || state === "ios" || state === "mobile" || state.startsWith("ios-");
+
+  if (isMobileBounce) {
+    const params = new URLSearchParams();
+    if (error) {
+      params.set("error", error);
+      if (errorDescription) params.set("error_description", errorDescription);
+    } else if (code) {
+      params.set("code", code);
+    } else {
+      params.set("error", "missing_code");
+    }
+    if (state) params.set("state", state);
+
+    const deepLink = `auen://spotify-callback?${params.toString()}`;
+    const safeHref = deepLink
+      .replace(/&/g, "&amp;")
+      .replace(/"/g, "&quot;")
+      .replace(/</g, "&lt;");
+
+    return res
+      .status(200)
+      .type("html")
+      .send(`<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1"/>
+  <meta http-equiv="refresh" content="0;url=${safeHref}"/>
+  <title>Returning to Äuen…</title>
+  <style>
+    body { font-family: system-ui, -apple-system, sans-serif; padding: 2rem; background: #F2F4FF; color: #16142A; }
+    a { color: #FF5A3C; font-weight: 600; }
+  </style>
+</head>
+<body>
+  <p>Returning to Äuen…</p>
+  <p><a href="${safeHref}">Tap here if the app does not open</a></p>
+  <script>location.replace(${JSON.stringify(deepLink)});</script>
+</body>
+</html>`);
+  }
 
   if (error) {
     return res.status(400).send(`Spotify authorize error: ${error}`);
@@ -107,12 +159,8 @@ spotifyRouter.get("/callback", async (req, res) => {
   if (!code) {
     return res.status(400).send("Missing code");
   }
-  if (!state) {
-    return res
-      .status(400)
-      .send("Missing state (Äuen user id). Open authorize URL with state=<userId>.");
-  }
 
+  // Web link path: state is Äuen user id
   try {
     await exchangeSpotifyCode(state, code);
     await syncSpotifyNowPlaying(state);
